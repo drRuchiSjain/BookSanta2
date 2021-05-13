@@ -1,32 +1,34 @@
 import React, { Component } from 'react';
 import { View, StyleSheet, Text, FlatList,TouchableOpacity } from 'react-native';
-import { ListItem, Avatar } from 'react-native-elements'
+import { ListItem } from 'react-native-elements'
 import firebase from 'firebase';
 import db from '../config'
 import MyHeader from '../components/MyHeader';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default class BookDonateScreen extends Component{
+export default class MyReceivedBooksScreen extends Component{
   constructor(){
     super()
     this.state = {
-      requestedBooksList : []
+      userId  : firebase.auth().currentUser.email,
+      receivedBooksList : []
     }
   this.requestRef= null
   }
 
-  getRequestedBooksList =()=>{
+  getReceivedBooksList =()=>{
     this.requestRef = db.collection("requested_books")
+    .where('user_id','==',this.state.userId)
+    .where("book_status", '==','received')
     .onSnapshot((snapshot)=>{
-      var requestedBooksList = snapshot.docs.map(document => document.data());
+      var receivedBooksList = snapshot.docs.map((doc) => doc.data())
       this.setState({
-        requestedBooksList : requestedBooksList
+        receivedBooksList : receivedBooksList
       });
     })
   }
 
   componentDidMount(){
-    this.getRequestedBooksList()
+    this.getReceivedBooksList()
   }
 
   componentWillUnmount(){
@@ -36,87 +38,62 @@ export default class BookDonateScreen extends Component{
   keyExtractor = (item, index) => index.toString()
 
   renderItem = ( {item, i} ) =>{
+    console.log(item.book_name);
     return (
-      <ListItem key={i} bottomDivider>
-<Avatar source={{uri: item.image_link}} />
-
+      
+        <ListItem key={i} bottomDivider>
+        
         <ListItem.Content>
+        
           <ListItem.Title style={{ color: "black", fontWeight: "bold" }}>
             {item.book_name}
           </ListItem.Title>
           <ListItem.Subtitle style={{ color: "green" }}>
-            {item.reason_to_request}
+            {item.bookStatus}
           </ListItem.Subtitle>
-          
-          <TouchableOpacity style={styles.button}
-
-              onPress ={()=>{
-                
-                this.props.navigation.navigate("RecieverDetails",{"details": item})
-              }}
-              >
-            <Text style={{ color: "#ffff" }}>View</Text>
-          </TouchableOpacity>
-          
+                    
         </ListItem.Content>
       </ListItem>
-    );
-    /*return (
-        
-      <ListItem
-        key={i}
-        title={item.book_name}
-        subtitle={item.reason_to_request}
-        titleStyle={{ color: 'black', fontWeight: 'bold' }}
-        rightElement={
-            <TouchableOpacity style={styles.button}>
-              <Text style={{color:'#ffff'}}>View</Text>
-            </TouchableOpacity>
-          }
-        bottomDivider
-      />
-    )*/
+      
+      
+      
+      
+      
+    )
   }
 
   render(){
     return(
-    
       <View style={{flex:1}}>
-        <MyHeader title="Donate Books" navigation ={this.props.navigation}/>
-       
-        <Text>{this.state.requestedBooksList.length}</Text> 
-       
+        <MyHeader title="Received Books" navigation ={this.props.navigation}/>
         <View style={{flex:1}}>
           {
-            this.state.requestedBooksList.length === 0
+            this.state.receivedBooksList.length === 0
             ?(
               <View style={styles.subContainer}>
-                <Text style={{ fontSize: 20}}>List Of All Requested Books</Text>
+                <Text style={{ fontSize: 20}}>List Of All Received Books</Text>
               </View>
             )
             :(
               <FlatList
                 keyExtractor={this.keyExtractor}
-                data={this.state.requestedBooksList}
+                data={this.state.receivedBooksList}
                 renderItem={this.renderItem}
               />
             )
           }
         </View>
       </View>
-    
     )
   }
 }
-
 
 const styles = StyleSheet.create({
   subContainer:{
     flex:1,
     fontSize: 20,
     justifyContent:'center',
-    alignItems:'center',
-    marginTop:50
+    alignItems:'center'
   },
   button:{
     width:100,

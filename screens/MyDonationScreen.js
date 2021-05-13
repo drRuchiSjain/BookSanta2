@@ -4,7 +4,8 @@ import { Card, Icon, ListItem } from 'react-native-elements'
 import MyHeader from '../components/MyHeader.js'
 import firebase from 'firebase';
 import db from '../config.js'
-import { Avatar } from 'react-native-elements/dist/avatar/Avatar';
+
+import { List, Colors } from 'react-native-paper';
 
 export default class MyDonationScreen extends Component {
   static navigationOptions = { header: null };
@@ -30,14 +31,56 @@ export default class MyDonationScreen extends Component {
         });
       })
   }
+
+  sendBook=(bookDetails)=>{
+    if(bookDetails.request_status === "Book Sent"){
+      var requestStatus = "Donor Interested"
+      db.collection("all_donations").doc(bookDetails.doc_id).update({
+        "request_status" : "Donor Interested"
+      })
+      this.sendNotification(bookDetails,requestStatus)
+    }
+    else{
+      var requestStatus = "Book Sent"
+      db.collection("all_donations").doc(bookDetails.doc_id).update({
+        "request_status" : "Book Sent"
+      })
+      this.sendNotification(bookDetails,requestStatus)
+    }
+  }
+
+  sendNotification=(bookDetails,requestStatus)=>{
+    var requestId = bookDetails.request_id
+    var donorId = bookDetails.donor_id
+    db.collection("all_notifications")
+    .where("request_id","==", requestId)
+    .where("donor_id","==",donorId)
+    .get()
+    .then((snapshot)=>{
+      snapshot.forEach((doc) => {
+        var message = ""
+        if(requestStatus === "Book Sent"){
+          message = this.state.donorName + " sent you book"
+        }else{
+           message =  this.state.donorName  + " has shown interest in donating the book"
+        }
+        db.collection("all_notifications").doc(doc.id).update({
+          "message": message,
+          "notification_status" : "unread",
+          "date"                : firebase.firestore.FieldValue.serverTimestamp()
+        })
+      });
+    })
+  }
  
   keyExtractor = (item, index) => index.toString()
 
   renderItem = ({ item, i }) => {
     return (
       <ListItem key={i} bottomDivider>
+        <List.Icon color={Colors.orange500} icon="book" />
         <ListItem.Content>
-          <Avatar source={require('../assets/book.png')} />
+         
           <ListItem.Title style={{ color: "black", fontWeight: "bold" }}>
             {item.book_name}
           </ListItem.Title>
@@ -45,17 +88,21 @@ export default class MyDonationScreen extends Component {
             {"Requested By : " + item.requested_by + "\nStatus : " + item.request_status}
           </ListItem.Subtitle>
 
-          <TouchableOpacity style={styles.button}
-
-            onPress={() => {
-              console.log('line 49.')
-
-              this.props.navigation.navigate("RecieverDetails", { "details": item })
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor : item.request_status === "Book Sent" ? "green" : "#ff5722"
+              }
+            ]}
+            onPress = {()=>{
+              this.sendBook(item)
             }}
-          >
-            <Text style={{ color: "#ffff" }}>View</Text>
-          </TouchableOpacity>
-
+           >
+             <Text style={{color:'#ffff'}}>{
+               item.request_status === "Book Sent" ? "Book Sent" : "Send Book"
+             }</Text>
+           </TouchableOpacity>
 
 
 
